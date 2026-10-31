@@ -161,14 +161,31 @@ python -m app.cli.main serve --host 0.0.0.0 --port 8000
 
 API docs:
 - Swagger UI: `http://localhost:8000/docs`
+- Web Dashboard UI: `http://localhost:8000/`
+
+## Web Dashboard
+
+The dashboard provides a full browser-based control center for the automation agent:
+- Start/stop the watcher and scheduler
+- Trigger scan/process/full-cycle actions
+- Upload `.mp4` files directly from browser
+- View pipeline metrics and recent logs
+- Track recent video records and upload status
 
 ## API Endpoints
 
+- `GET /`: web dashboard interface
 - `GET /videos`: list stored video metadata
 - `GET /uploads`: status counts
 - `GET /status`: runtime service state
 - `GET /logs`: tail logs
 - `GET /settings`: non-sensitive config
+- `POST /upload`: upload `.mp4` file to watch folder
+- `POST /actions/start`: start watcher + scheduler
+- `POST /actions/stop`: stop watcher + scheduler
+- `POST /actions/scan`: scan and queue new videos
+- `POST /actions/process`: process queued videos
+- `POST /actions/run-once`: run scan + process sequence
 
 ## Scheduler
 

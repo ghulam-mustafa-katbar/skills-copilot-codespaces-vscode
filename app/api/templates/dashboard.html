@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ app_name }} Dashboard</title>
+  <link rel="stylesheet" href="/static/dashboard.css" />
+</head>
+<body>
+  <div class="container">
+    <header class="header card">
+      <div>
+        <h1>{{ app_name }}</h1>
+        <p>Professional control center for your YouTube automation workflow.</p>
+      </div>
+      <div id="statusBadge" class="status-badge">Checking status…</div>
+    </header>
+
+    <section class="grid metrics-grid" id="metrics"></section>
+
+    <section class="card actions-card">
+      <h2>Agent Controls</h2>
+      <div class="button-row">
+        <button data-action="start">Start Agent</button>
+        <button data-action="stop" class="secondary">Stop Agent</button>
+        <button data-action="scan">Scan Videos</button>
+        <button data-action="process">Process Queue</button>
+        <button data-action="run-once">Run Full Cycle</button>
+        <button data-action="refresh" class="secondary">Refresh</button>
+      </div>
+      <div id="actionResult" class="muted"></div>
+    </section>
+
+    <section class="card">
+      <h2>Upload Video</h2>
+      <form id="uploadForm" class="upload-form">
+        <input id="videoFile" type="file" accept=".mp4,video/mp4" required />
+        <button type="submit">Upload to Queue</button>
+      </form>
+      <p class="muted">Drop or select an .mp4 file. Then run scan/process or full cycle.</p>
+      <div id="uploadResult" class="muted"></div>
+    </section>
+
+    <section class="card">
+      <div class="section-head">
+        <h2>Recent Videos</h2>
+        <span class="muted">Latest 100 records</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>File</th>
+              <th>Status</th>
+              <th>Title</th>
+              <th>YouTube ID</th>
+              <th>Error</th>
+              <th>Created</th>
+            </tr>
+          </thead>
+          <tbody id="videosTableBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card logs-card">
+      <div class="section-head">
+        <h2>Recent Logs</h2>
+        <button id="refreshLogs" class="secondary">Refresh Logs</button>
+      </div>
+      <pre id="logsPanel">Loading logs...</pre>
+    </section>
+  </div>
+
+  <script src="/static/dashboard.js"></script>
+</body>
+</html>

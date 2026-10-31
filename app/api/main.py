@@ -1,8 +1,11 @@
-"""FastAPI dashboard API."""
+"""FastAPI dashboard API and web interface."""
 
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, File, HTTPException, Request, UploadFile
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 
 from app.config.settings import get_settings
 from app.database.base import SessionLocal
@@ -12,6 +15,17 @@ from app.services.agent import YouTubeAutomationAgent
 settings = get_settings()
 agent = YouTubeAutomationAgent(settings)
 app = FastAPI(title=settings.app_name, version="1.0.0")
+
+BASE_DIR = Path(__file__).resolve().parent
+templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
+app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
+
+
+@app.get("/", response_class=HTMLResponse)
+def dashboard(request: Request) -> HTMLResponse:
+    """Serve web dashboard."""
+
+    return templates.TemplateResponse(request=request, name="dashboard.html", context={"app_name": settings.app_name})
 
 
 @app.get("/videos")
@@ -28,6 +42,8 @@ def list_videos(limit: int = 100) -> list[dict]:
             "youtube_video_id": record.youtube_video_id,
             "title": record.title,
             "uploaded_at": record.uploaded_at,
+            "scheduled_publish_at": record.scheduled_publish_at,
+            "error_message": record.error_message,
             "created_at": record.created_at,
         }
         for record in records
@@ -81,3 +97,70 @@ def current_settings() -> dict:
         "ollama_model": settings.ollama_model,
         "log_level": settings.log_level,
     }
+
+
+@app.post("/actions/start")
+def start_agent() -> dict:
+    """Start watcher and scheduler services."""
+
+    if not agent.state.running:
+        agent.start()
+    return service_status()
+
+
+@app.post("/actions/stop")
+def stop_agent() -> dict:
+    """Stop watcher and scheduler services."""
+
+    if agent.state.running:
+        agent.stop()
+    return service_status()
+
+
+@app.post("/actions/scan")
+def scan_now() -> dict:
+    """Queue new videos from upload folder."""
+
+    queued = agent.scan_and_queue()
+    return {"queued": queued, **service_status()}
+
+
+@app.post("/actions/process")
+def process_now() -> dict:
+    """Process queued uploads immediately."""
+
+    processed = agent.upload_now()
+    return {"processed": processed, **service_status()}
+
+
+@app.post("/actions/run-once")
+def run_once() -> dict:
+    """Run scan and process in sequence."""
+
+    queued = agent.scan_and_queue()
+    processed = agent.upload_now()
+    return {"queued": queued, "processed": processed, **service_status()}
+
+
+@app.post("/upload")
+def upload_file(file: UploadFile = File(...)) -> dict:
+    """Upload a local mp4 file into watched upload folder."""
+
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="Filename is required")
+
+    target_name = Path(file.filename).name
+    if not target_name.lower().endswith(".mp4"):
+        raise HTTPException(status_code=400, detail="Only .mp4 files are supported")
+
+    destination = Path(settings.upload_folder) / target_name
+    destination.parent.mkdir(parents=True, exist_ok=True)
+
+    with destination.open("wb") as output:
+        while True:
+            chunk = file.file.read(1024 * 1024)
+            if not chunk:
+                break
+            output.write(chunk)
+
+    return {"message": "File uploaded", "file_name": target_name, "path": str(destination)}
